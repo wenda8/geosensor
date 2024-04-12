@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  front:
+    container_name: front
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./front:/app 
+      - /app/node_modules 
+    command: npm run serve
+    networks:
+      - app-network
+
+  back:
+    container_name: back
+    build:
+      context: ./back
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://ywd:YWDa351656@rm-cn-jeo3nfa850005obo.rwlb.zhangbei.rds.aliyuncs.com:5432/Farmland data
+    ports:
+      - "5000:5000"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
