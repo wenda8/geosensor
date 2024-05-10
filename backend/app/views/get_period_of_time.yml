@@ -1,0 +1,61 @@
+tags:
+  - PeriodOfTime
+summary: "Get aggregated sensor data for a node"
+description: "Retrieve aggregated environment and soil temperature and humidity data for a specified node within a given time period."
+parameters:
+  - in: "query"
+    name: "node_id"
+    schema:
+      type: "string"
+    required: true
+    description: "The ID of the node to fetch data for."
+  - in: "query"
+    name: "time_scale"
+    schema:
+      type: "string"
+      enum: [hourly, daily, weekly]
+    required: true
+    description: "The aggregation time scale."
+  - in: "query"
+    name: "start_date"
+    schema:
+      type: "string"
+      format: 'date-time'
+    required: false
+    description: "The start of the time period (inclusive) in YYYY-MM-DD HH format."
+  - in: "query"
+    name: "end_date"
+    schema:
+      type: "string"
+      format: 'date-time'
+    required: false
+    description: "The end of the time period (exclusive) in YYYY-MM-DD HH format."
+responses:
+  200:
+    description: "Successfully retrieved data"
+    content:
+      application/json:
+        schema:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              time:
+                type: "string"
+                format: "date-time"
+              average_env_t:
+                type: "number"
+                format: "float"
+              average_env_h:
+                type: "number"
+                format: "float"
+              average_soil_t:
+                type: "number"
+                format: "float"
+              average_soil_h:
+                type: "number"
+                format: "float"
+  400:
+    description: "Invalid request parameters"
+  404:
+    description: "Node not found"

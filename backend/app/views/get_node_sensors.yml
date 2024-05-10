@@ -1,0 +1,29 @@
+tags:
+  - NodeSensor
+summary: "Get all node sensors"
+description: "Retrieve a list of all node sensors from the database."
+responses:
+  200:
+    description: "A list of node sensors"
+    schema:
+      type: "array"
+      items:
+        $ref: '#/definitions/NodeSensor'
+  404:
+    description: "Page not found"
+definitions:
+  NodeSensor:
+    type: "object"
+    properties:
+      node_id:
+        type: "integer"
+      sensor_id:
+        type: "integer"
+      type:
+        type: "string"
+      latitude:
+        type: "number"
+        format: "float"
+      longitude:
+        type: "number"
+        format: "float"

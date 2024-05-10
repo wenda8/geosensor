@@ -1,0 +1,30 @@
+tags:
+  - SensorData
+summary: "Get all sensor data"
+description: "Retrieve a list of all sensor data from the database."
+responses:
+  200:
+    description: "A list of sensor data"
+    schema:
+      type: "array"
+      items:
+        $ref: '#/definitions/SensorData'
+  404:
+    description: "Page not found"
+definitions:
+  SensorData:
+    type: "object"
+    properties:
+      sensor_id:
+        type: "integer"
+      measure_time:
+        type: "string"
+        format: "date-time"
+      env_t:
+        type: "number"
+      env_h:
+        type: "number"
+      soil_t:
+        type: "number"
+      soil_h:
+        type: "number"

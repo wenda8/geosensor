@@ -1,0 +1,33 @@
+tags:
+  - NodeSensor
+summary: "Get data of a single node sensor"
+description: "Retrieve the data of a single node sensor by its node ID."
+parameters:
+  - name: "node_id"
+    in: "path"
+    required: true
+    description: "The node ID"
+    type: "integer"
+responses:
+  200:
+    description: "Node sensor data retrieved successfully"
+    schema:
+      $ref: '#/definitions/NodeSensor'
+  404:
+    description: "Node not found"
+definitions:
+  NodeSensor:
+    type: "object"
+    properties:
+      node_id:
+        type: "integer"
+      sensor_id:
+        type: "integer"
+      type:
+        type: "string"
+      latitude:
+        type: "number"
+        format: "float"
+      longitude:
+        type: "number"
+        format: "float"
