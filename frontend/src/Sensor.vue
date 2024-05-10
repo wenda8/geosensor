@@ -5,7 +5,7 @@
     </div>
     <div class="chart-container">
       <div class="node">Node: 
-        <span v-if="selectedNodeId !== null">{{ selectedNodeId }}</span>
+        <span v-if="selectedNodeIds !== null">{{ selectedNodeIds }}</span>
       </div>
       
       <div class="Tchart">
@@ -78,6 +78,10 @@
           <button class="send-button" @click="sendtime">Send</button>
         </div>
 
+        <div class="download-button-container">
+          <button class="download-button" @click="downloadChartData">Download Data</button>
+        </div>
+
       </div>
 
     </div>
@@ -99,8 +103,8 @@
         nodesData: [],
         popup: null, 
 
-        temperatureChartData: null,
-        humidityChartData: null,
+        temperatureChartData: [],
+        humidityChartData: [],
 
         timescale: 'hourly',
 
@@ -120,9 +124,11 @@
         days: [],
         hours: [],
 
-        selectedNodeId: 1, 
+        selectedNodeIds: [], 
         selectedNodeSensor: null,
         selectedNodeType: null,
+        labels: [], // 用于存储时间标签的数组
+        allData: [],
       };
       
     },
@@ -190,9 +196,15 @@
 
           const marker = L.marker([latitude, longitude], { icon: customIcon }).addTo(this.map);
           marker.on('click', () => {
-            let popupContent = `Node ID: ${nodeId}<br>`;
+            if (!this.selectedNodeIds.includes(nodeId)) {
+              this.selectedNodeIds.push(nodeId);
+            } else {
+              const index = this.selectedNodeIds.indexOf(nodeId);
+              this.selectedNodeIds.splice(index, 1);
+            }
+            let popupContent = `Selected Node IDs: ${this.selectedNodeIds.join(', ')}<br>`;
             nodeData.forEach(node => {
-              this.selectedNodeId = node.node_id;
+              
               popupContent += `Sensor ID: ${node.sensor_id}, Type: ${node.type}<br>`;
             });
             
@@ -274,74 +286,240 @@
       },
 
 
+      generateRandomColor() {
+        const r = Math.floor(Math.random() * 256);
+        const g = Math.floor(Math.random() * 256);
+        const b = Math.floor(Math.random() * 256);
+        return `rgb(${r}, ${g}, ${b})`;
+      },
+      
+      // downloadChartData() {
+      //   // 创建 CSV 文件的标题行
+      //   let csvContent = "data:text/csv;charset=utf-8,Node ID,Type,Time,Value\n";
+
+      //   // 遍历温度和湿度图表中的数据集，组合所有节点的数据
+      //   const datasets = [...this.temperatureChartData, ...this.humidityChartData];
+
+      //   datasets.forEach(dataset => {
+      //     const labelParts = dataset.label.split(' - ');
+      //     const nodeId = labelParts[0].replace('Node ', '');
+      //     const type = labelParts[1];
+      //     dataset.data.forEach((value, index) => {
+      //       const time = this.labels[index];
+      //       csvContent += `${nodeId},${type},${time},${value}\n`;
+      //     });
+      //   });
+
+      //   // 创建一个虚拟链接，生成并自动触发下载
+      //   const encodedUri = encodeURI(csvContent);
+      //   const link = document.createElement("a");
+      //   link.setAttribute("href", encodedUri);
+      //   link.setAttribute("download", "chart_data.csv");
+      //   document.body.appendChild(link);
+
+      //   // 触发下载并移除虚拟链接
+      //   link.click();
+      //   document.body.removeChild(link);
+      // },
+
+
+      downloadChartData() {
+        // 创建 CSV 文件的标题行
+        if (!Array.isArray(this.allData) || this.allData.length === 0) {
+          console.warn('No data available to export.');
+          return; // 无数据时直接返回
+        }
+        let csvContent = "data:text/csv;charset=utf-8,node_id,sensor_id,time,env_t,env_h,soil_t,soil_h\n";
+
+        // 遍历 `allData`，组合所有节点的完整数据
+      
+        this.allData.forEach(nodeDataGroup => {
+          const { nodeId, nodeData } = nodeDataGroup;
+          nodeData.forEach(item => {
+            const timeOrDate = this.timescale === 'daily' ? item.date : item.time;
+            const row = [
+              nodeId,
+              item.sensor_id || '', // 确保为空值时输出空字符串
+              timeOrDate || '', // 使用 `date` 或 `time` 字段
+              item.env_t != null ? item.env_t : '', // 确保空值时输出空字符串
+              item.env_h != null ? item.env_h : '',
+              item.soil_t != null ? item.soil_t : '',
+              item.soil_h != null ? item.soil_h : ''
+            ].join(',');
+
+            // 添加到 CSV 内容
+            csvContent += `${row}\n`;
+          });
+        });
+
+        // 创建一个虚拟链接，生成并自动触发下载
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "chart_data.csv");
+        document.body.appendChild(link);
+
+        // 触发下载并移除虚拟链接
+        link.click();
+        document.body.removeChild(link);
+      },
+      // downloadChartData() {
+      //   // 检查 `allData` 是否存在且为数组
+      //   if (!Array.isArray(this.allData) || this.allData.length === 0) {
+      //     console.warn('No data available to export.');
+      //     return;
+      //   }
+
+      //   // 创建 CSV 文件的标题行
+      //   let csvContent = "data:text/csv;charset=utf-8,node_id,sensor_id,type,time,env_t,env_h,soil_t,soil_h\n";
+
+      //   // 遍历 `allData`，组合所有节点的完整数据
+      //   this.allData.forEach(nodeDataGroup => {
+      //     const { nodeId, datasets } = nodeDataGroup;
+  
+
+      //     // 遍历数据集，使用 `label` 属性中的类型信息
+      //     datasets.forEach(dataset => {
+      //       // 从 `label` 属性中提取类型
+      //       const labelParts = dataset.label.split(' - ');
+      //       const type = labelParts[1]; // 获取 `type` 部分
+
+      //       // 遍历每个数据项，将 `type` 填入对应列
+      //       dataset.data.forEach((value, index) => {
+      //         const time = this.labels[index];
+
+      //         // 构造每行数据
+      //         const row = [
+      //           nodeId,
+      //           dataset.sensor_id || '',
+      //           type, // 使用 `label` 中的类型信息
+      //           time,
+      //           value.env_t != null ? value.env_t : '',
+      //           value.env_h != null ? value.env_h : '',
+      //           value.soil_t != null ? value.soil_t : '',
+      //           value.soil_h != null ? value.soil_h : ''
+      //         ].join(',');
+
+      //         // 添加到 CSV 内容
+      //         csvContent += `${row}\n`;
+      //       });
+      //     });
+      //   });
+
+      //   // 创建虚拟链接，生成并自动触发下载
+      //   const encodedUri = encodeURI(csvContent);
+      //   const link = document.createElement("a");
+      //   link.setAttribute("href", encodedUri);
+      //   link.setAttribute("download", "chart_data.csv");
+      //   document.body.appendChild(link);
+
+      //   // 触发下载并移除虚拟链接
+      //   link.click();
+      //   document.body.removeChild(link);
+      // },
+          
       async sendtime() {
         const startDateTime = `${this.selectedYearStart}-${this.selectedMonthStart.toString().padStart(2, '0')}-${this.selectedDayStart.toString().padStart(2, '0')} ${this.selectedHourStart.toString().padStart(2, '0')}`;
         const endDateTime = `${this.selectedYearEnd}-${this.selectedMonthEnd.toString().padStart(2, '0')}-${this.selectedDayEnd.toString().padStart(2, '0')} ${this.selectedHourEnd.toString().padStart(2, '0')}`;
 
-        const payload = {
-          node_id: this.selectedNodeId,
-          time_scale: this.timescale,
-          start_date: startDateTime,
-          end_date: endDateTime
-        };
-        console.log('Sending data to server:', payload);
-        try {
-          const sendtime = await axios.get(`http://localhost:8888/period_of_time/get_period_of_time`, { params: payload });
-          console.log('Data received from server:', sendtime.data);
-          this.processData(sendtime)
-        } catch (error) {
-          console.error('Error fetching data:', error);
+        const allData = [];
+        const datasets_temp = [];
+        const datasets_humidity = [];
+        this.allData = []; // 确保清空旧的数据
+
+        // 循环发送请求，收集每个节点的数据
+        for (const nodeId of this.selectedNodeIds) {
+          const payload = {
+            node_id: nodeId,
+            time_scale: this.timescale,
+            start_date: startDateTime,
+            end_date: endDateTime
+          };
+
+          console.log(`Sending data for node ${nodeId}:`, payload);
+
+          try {
+            const response = await axios.get(`http://localhost:8888/period_of_time/get_period_of_time`, { params: payload });
+            console.log('Data received from server:', response.data);
+            const nodeData = response.data;
+            if (response && response.data) {
+              // 确保将 `nodeId` 和 `nodeData` 一起存储
+              this.allData.push({
+                nodeId,
+                nodeData: response.data
+              });
+            }
+            // 生成环境温度和土壤温度的随机颜色
+            const envTColor = this.generateRandomColor();
+            const soilTColor = this.generateRandomColor();
+            const envHColor = this.generateRandomColor();
+            const soilHColor = this.generateRandomColor();
+
+            // 处理标签和数据
+            let labels;
+              if (this.timescale === 'daily') {
+                labels = nodeData.map(item => item.date);
+              } else if (this.timescale === 'hourly') {
+                labels = nodeData.map(item => item.time);
+              }
+            allData.push({ nodeId, labels, nodeData });
+
+            // 按不同节点分别添加到 datasets 中，使用不同的颜色区分
+            datasets_temp.push({
+              label: `Node ${nodeId} - Environment Temp`,
+              data: nodeData.map(item => item.env_t),
+              borderColor: envTColor,
+              backgroundColor: envTColor.replace('rgb', 'rgba').replace(')', ', 0.5)')
+            });
+
+            datasets_temp.push({
+              label: `Node ${nodeId} - Soil Temp`,
+              data: nodeData.map(item => item.soil_t),
+              borderColor: soilTColor,
+              backgroundColor: soilTColor.replace('rgb', 'rgba').replace(')', ', 0.5)')
+            });
+
+            datasets_humidity.push({
+              label: `Node ${nodeId} - Environment Humidity`,
+              data: nodeData.map(item => item.env_h),
+              borderColor: envHColor,
+              backgroundColor: envHColor.replace('rgb', 'rgba').replace(')', ', 0.5)')
+            });
+
+            datasets_humidity.push({
+              label: `Node ${nodeId} - Soil Humidity`,
+              data: nodeData.map(item => item.soil_h),
+              borderColor: soilHColor,
+              backgroundColor: soilHColor.replace('rgb', 'rgba').replace(')', ', 0.5)')
+            });
+
+          } catch (error) {
+            console.error(`Error fetching data for node ${nodeId}:`, error);
+          }
         }
-      },
-      
-      processData(data) {
-        let labels;
-          if (this.timescale === 'daily') {
-            labels = data.data.map(item => item.date);
-          } else if (this.timescale === 'hourly') {
-            labels = data.data.map(item => item.time);
-          }
-        const envTemperatureData = data.data.map(item => ({y: item.env_t, sensorId: item.sensor_id}))
-        const soilTemperatureData = data.data.map(item => ({y: item.soil_t, sensorId: item.sensor_id}))
-        const envHumidityData = data.data.map(item => ({y: item.env_h, sensorId: item.sensor_id}))
-        const soilHumidityData = data.data.map(item => ({y: item.soil_h, sensorId: item.sensor_id}))
-        
-        // console.log(envTemperatureData)
 
-        this.renderChart('temperatureChart', labels, [
-          {
-            label: 'Environment Temperature',
-            data: envTemperatureData.map(item => item.y),
-            borderColor: 'rgb(255, 99, 132)',
-            backgroundColor: 'rgba(255, 99, 132, 0.5)',
-            sensorIds: envTemperatureData.map(item => item.sensorId),
-          },
-          {
-            label: 'Soil Temperature',
-            data: soilTemperatureData.map(item => item.y),
-            borderColor: 'rgb(54, 162, 235)',
-            backgroundColor: 'rgba(54, 162, 235, 0.5)',
-            sensorIds: soilTemperatureData.map(item => item.sensorId),
-          }
-        ])
+        // 获取时间轴的标签
+        const commonLabels = allData.length > 0 ? allData[0].labels : [];
 
-        this.renderChart('humidityChart', labels, [
-          {
-            label: 'Environment Humidity',
-            data: envHumidityData.map(item => item.y),
-            borderColor: 'rgb(255, 206, 86)',
-            backgroundColor: 'rgba(255, 206, 86, 0.5)',
-            sensorIds: envHumidityData.map(item => item.sensorId),
-          },
-          {
-            label: 'Soil Humidity',
-            data: soilHumidityData.map(item => item.y),
-            borderColor: 'rgb(75, 192, 192)',
-            backgroundColor: 'rgba(75, 192, 192, 0.5)',
-            sensorIds: soilHumidityData.map(item => item.sensorId),
-          }
-        ])
+        // 调用图表渲染函数
+        this.renderChart('temperatureChart', commonLabels, datasets_temp);
+        this.renderChart('humidityChart', commonLabels, datasets_humidity);
+        this.temperatureChartData = datasets_temp;
+        this.humidityChartData = datasets_humidity;
+        this.labels = commonLabels; // 使用最后获取的时间标签
       },
+
+      groupDataByNode(data) {
+        return data.reduce((acc, item) => {
+          if (!acc[item.node_id]) {
+            acc[item.node_id] = [];
+          }
+          acc[item.node_id].push(item);
+          return acc;
+        }, {});
+    
+      },
+
       renderChart(chartId, labels, datasets) {
         const ctx = document.getElementById(chartId).getContext('2d');
         const existingChart = Chart.getChart(ctx);
@@ -486,7 +664,7 @@
   margin: 0 auto; 
   }
 
-  .send-button {
+  .send-button, .download-button {
   padding: 10px 15px; 
   background-color: #226d15; 
   color: white; 
@@ -499,12 +677,12 @@
   transition: all 0.3s; 
 }
 
-.send-button:hover {
+.send-button, .download-button :hover {
   background-color: #1f6113; 
   box-shadow: 0 6px 12px rgba(0,0,0,0.3); 
 }
 
-.send-button:active {
+.send-button, .download-button :active {
   box-shadow: 0 2px 4px rgba(0,0,0,0.2); 
   transform: translateY(2px); 
 }
