@@ -1,32 +1,32 @@
 version: '3.8'
 
 services:
-  front:
-    container_name: front
+  frontend:
+    container_name: frontend
     build:
-      context: ./front
+      context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "8080:8080"
+      - "8081:8081"
     volumes:
-      - ./front:/app 
+      - ./frontend:/app 
       - /app/node_modules 
     command: npm run serve
     networks:
-      - app-network
+      - agronetwork
 
-  back:
-    container_name: back
+  backend:
+    container_name: backend
     build:
-      context: ./back
+      context: ./backend
       dockerfile: Dockerfile
     environment:
-      - DATABASE_URL=postgresql://ywd:YWDa351656@rm-cn-jeo3nfa850005obo.rwlb.zhangbei.rds.aliyuncs.com:5432/Farmland data
+      - DATABASE_URL=postgresql://ywd:YWDa351656@rm-cn-jeo3nfa850005obo.rwlb.zhangbei.rds.aliyuncs.com:5001/Farmland data
     ports:
-      - "5000:5000"
+      - "8888:8888"
     networks:
-      - app-network
+      - agronetwork
 
 networks:
-  app-network:
-    driver: bridge
+  agronetwork:
+    external: true
